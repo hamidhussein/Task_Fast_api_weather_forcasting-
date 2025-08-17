@@ -103,7 +103,7 @@ Register a new user and get a JWT.
 
 ```json
 {
-  "email": "alice@example.com",
+  "email": "hamid@example.com",
   "password": "SecretPass123"
 }
 ```
@@ -122,7 +122,7 @@ Register a new user and get a JWT.
 ```bash
 curl -X POST http://127.0.0.1:8000/auth/signup \
   -H "Content-Type: application/json" \
-  -d '{"email":"alice@example.com","password":"SecretPass123"}'
+  -d '{"email":"hamid@example.com","password":"SecretPass123"}'
 ```
 
 ---
@@ -136,7 +136,7 @@ registered user.
 
 ```json
 {
-  "email": "alice@example.com",
+  "email": "hamid@example.com",
   "password": "SecretPass123"
 }
 ```
