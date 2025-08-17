@@ -233,34 +233,3 @@ pip freeze > requirements.txt
 
 This ensures reproducibility for others installing the project.
 
-## Publishing to GitHub
-
-1. Initialize a git repository and commit all files:
-
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit: FastAPI weather API"
-   ```
-
-2. Create a new public repository on GitHub (e.g. `weather-api`).  Copy the
-   remote URL, then run:
-
-   ```bash
-   git branch -M main
-   git remote add origin https://github.com/<your-username>/weather-api.git
-   git push -u origin main
-   ```
-
-3. Share the repository link with others so they can clone and run the app.
-
----
-
-### Notes
-
-- Store sensitive values (database passwords, JWT secret, WeatherAPI key)
-  **outside** version control.  The provided `config.json` should be
-  customised locally and never committed with real secrets.
-- The WeatherAPI free plan allows 14‑day forecasts.  For longer or
-  advanced features (e.g. hourly or future forecasts), you may need
-  a paid plan【882191624372483†L48-L56】.
