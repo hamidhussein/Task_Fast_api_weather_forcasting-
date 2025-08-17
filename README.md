@@ -1,112 +1,266 @@
-# Weather Forecasting API with FastAPI
+# Weather Forecasting API
 
-This project provides a simple API for user registration, authentication, and retrieving a 7‑day weather forecast. It uses **FastAPI** for the web framework, **SQLAlchemy** for database interactions, **PostgreSQL** as the database backend, and **WeatherAPI.com** for fetching weather data.
+This project is a simple FastAPI application that lets users register, obtain a
+JSON Web Token (JWT) and then query a seven‑day weather forecast for a
+specified city.  The forecast data comes from the public WeatherAPI
+service.
 
-## Features
+## Project structure
 
-- **User signup** and **login** endpoints with hashed passwords and JSON Web Tokens (JWT) for authentication.
-- **Weather forecast** endpoint that returns a week's forecast for a given city. Weather data is pulled from WeatherAPI.com using your API key.
-- Database credentials, JWT secret and WeatherAPI key are stored in `config.json` and loaded via `config.py`.
+```
+weather_api_project/
+├── app/
+│   ├── __init__.py        # Marks the app package
+│   ├── config.py          # Loads configuration from config.json via Pydantic
+│   ├── database.py        # SQLAlchemy engine and session management
+│   ├── models.py          # SQLAlchemy models (User table)
+│   ├── schemas.py         # Pydantic schemas for requests and responses
+│   ├── utils/
+│   │   └── auth.py        # Password hashing, JWT creation and current user logic
+│   └── routers/
+│       ├── auth.py        # `/auth` routes for signup and login
+│       └── weather.py     # `/weather` route for forecasts
+├── config.json            # Database and API credentials (not checked in)
+├── requirements.txt       # Frozen dependencies
+└── README.md              # This file
+```
 
-## Prerequisites
+## Getting started
 
-* Python 3.11 (or newer).
-* PostgreSQL installed and running. Create a database named **`db_weather_forecasting`** and note your username and password.
-* A **WeatherAPI.com** API key (the included configuration uses `85fe739f0f7f4f17b0a173001251308` as a placeholder).
+These instructions assume you have **Python 3.10+** and **PostgreSQL**
+installed locally.  Replace values like database credentials and API keys
+with your own.
 
-## Installation
-
-1. **Clone or extract** this repository.
-
-2. **Create a virtual environment** (recommended):
+1. **Create and activate a virtual environment**
 
    ```bash
    python -m venv .venv
-   source .venv/bin/activate  # On Windows use `.venv\\Scripts\\activate`
+   # Windows
+   .venv\Scripts\activate
+   # Linux/Mac
+   source .venv/bin/activate
    ```
 
-3. **Install dependencies**:
+2. **Install dependencies**
 
    ```bash
-   pip install --upgrade pip
    pip install -r requirements.txt
    ```
 
-4. **Configure the application**:
+3. **Configure the application**
 
-   Update `config.json` with your PostgreSQL credentials, a secure JWT secret and your WeatherAPI key.
+   Copy `config.json` and edit the values:
 
-5. **Initialize the database** (creates the `users` table):
-
-   ```bash
-   python init_db.py
+   ```json
+   {
+     "database": {
+       "database_user": "postgres",
+       "database_password": "postgres",
+       "database_host": "localhost",
+       "database_port": 5432,
+       "database_name": "weatherdb"
+     },
+     "jwt": {
+       "secret_key": "CHANGE_ME",    
+       "algorithm": "HS256",
+       "access_token_expire_minutes": 60
+     },
+     "weather_api": {
+       "api_key": "YOUR_WEATHERAPI_KEY"
+     }
+   }
    ```
 
-6. **Run the server**:
+   - The database credentials should point to a PostgreSQL instance.  Create a
+     database (e.g. `CREATE DATABASE weatherdb;`) before running the app.
+   - The `weather_api.api_key` is your [WeatherAPI](https://www.weatherapi.com/) key.
+
+4. **Initialize the database**
+
+   The database tables are created automatically when the first request
+   requiring the model is made.  To pre‑create them, run:
+
+   ```bash
+   python -c "from app.database import Base, engine; Base.metadata.create_all(bind=engine)"
+   ```
+
+5. **Run the application**
 
    ```bash
    uvicorn app.main:app --reload
    ```
 
-   The API will be available at `http://127.0.0.1:8000`. Interactive documentation can be found at `http://127.0.0.1:8000/docs`.
+   The API will be available at `http://127.0.0.1:8000`.  Interactive
+   documentation is at `/docs`.
 
-## API Endpoints
+## API endpoints
 
-### POST `/auth/signup`
+### `POST /auth/signup`
 
-Register a new user.
+Register a new user and get a JWT.
 
-**Request body:**
-
-```json
-{
-  "email": "user@example.com",
-  "password": "strongpassword"
-}
-```
-
-**Response:**
-
-Returns an access token if successful.
-
-### POST `/auth/login`
-
-Authenticate an existing user.
-
-**Request body:**
+**Request body**
 
 ```json
 {
-  "email": "user@example.com",
-  "password": "strongpassword"
+  "email": "alice@example.com",
+  "password": "SecretPass123"
 }
 ```
 
-**Response:**
+**Response (201)**
 
-Returns an access token if the credentials are valid.
+```json
+{
+  "access_token": "<JWT>",
+  "token_type": "bearer"
+}
+```
 
-### GET `/weather`
-
-Fetch a 7‑day weather forecast for a given city. Requires a valid Bearer token.
-
-**Query parameters:**
-
-* `city` (string) – the name of the city.
-* `lat` (float) – the latitude of the city.
-* `lon` (float) – the longitude of the city.
-
-**Example request:**
+**cURL**
 
 ```bash
-curl -H "Authorization: Bearer <token>" \
-     "http://127.0.0.1:8000/weather?city=Lahore&lat=31.5204&lon=74.3587"
+curl -X POST http://127.0.0.1:8000/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email":"alice@example.com","password":"SecretPass123"}'
 ```
 
-**Response:**
+---
 
-Returns a JSON object containing geographic coordinates, start and end dates, and an array of daily forecasts.
+### `POST /auth/login`
 
-## License
+Authenticate an existing user and get a JWT.  Credentials must match a
+registered user.
 
-This project is provided as‑is under the MIT license. See the `LICENSE` file for details.
+**Request body**
+
+```json
+{
+  "email": "alice@example.com",
+  "password": "SecretPass123"
+}
+```
+
+**Response (200)**
+
+```json
+{
+  "access_token": "<JWT>",
+  "token_type": "bearer"
+}
+```
+
+**cURL**
+
+```bash
+curl -X POST http://127.0.0.1:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"alice@example.com","password":"SecretPass123"}'
+```
+
+---
+
+### `GET /weather`
+
+Fetch a seven‑day forecast for a city starting from a given date.  This route
+requires authentication via the `Authorization` header.  The `date`
+parameter must be in `YYYY-MM-DD` format; `city` is a city name.
+
+**Query parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `date` | string | Start date in `YYYY-MM-DD`. Must be today or a future date within 14 days. |
+| `city` | string | City name to retrieve the forecast for. |
+
+**Headers**
+
+| Name | Value |
+| --- | --- |
+| `Authorization` | `Bearer <JWT>` obtained from the signup/login endpoints. |
+
+**Response (200)**
+
+```json
+{
+  "latitude": 31.52,
+  "longitude": 74.36,
+  "start_date": "2025-08-18",
+  "end_date": "2025-08-24",
+  "days": [
+    {
+      "date": "2025-08-18",
+      "temp_max_c": 39.6,
+      "temp_min_c": 27.0,
+      "precipitation_mm": 1.2,
+      "weathercode": 113
+    },
+    …
+  ]
+}
+```
+
+**cURL**
+
+```bash
+TOKEN="<JWT>"
+curl -G http://127.0.0.1:8000/weather \
+  -H "Authorization: Bearer $TOKEN" \
+  --data-urlencode "date=2025-08-18" \
+  --data-urlencode "city=Lahore"
+```
+
+### About the WeatherAPI
+
+This project uses the [WeatherAPI](https://www.weatherapi.com/) forecast
+endpoint.  According to the documentation, each request consists of a
+base URL and an API method; for forecasts the method is
+`/forecast.json` and the base URL is `http://api.weatherapi.com/v1`【882191624372483†L100-L109】.
+The required parameters include your API key (`key`), a location
+query (`q`) and the number of forecast days (`days`, between 1 and 14)
+【882191624372483†L123-L145】.  If `days` is omitted the API returns only the
+current day’s weather.  Our `/weather` route calls this endpoint
+with `days=7` to obtain a week‑long forecast.
+
+## Freezing dependencies
+
+To capture all installed packages and their versions after setting up your
+virtual environment, run:
+
+```bash
+pip freeze > requirements.txt
+```
+
+This ensures reproducibility for others installing the project.
+
+## Publishing to GitHub
+
+1. Initialize a git repository and commit all files:
+
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit: FastAPI weather API"
+   ```
+
+2. Create a new public repository on GitHub (e.g. `weather-api`).  Copy the
+   remote URL, then run:
+
+   ```bash
+   git branch -M main
+   git remote add origin https://github.com/<your-username>/weather-api.git
+   git push -u origin main
+   ```
+
+3. Share the repository link with others so they can clone and run the app.
+
+---
+
+### Notes
+
+- Store sensitive values (database passwords, JWT secret, WeatherAPI key)
+  **outside** version control.  The provided `config.json` should be
+  customised locally and never committed with real secrets.
+- The WeatherAPI free plan allows 14‑day forecasts.  For longer or
+  advanced features (e.g. hourly or future forecasts), you may need
+  a paid plan【882191624372483†L48-L56】.

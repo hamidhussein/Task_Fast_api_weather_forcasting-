@@ -1,0 +1,17 @@
+{
+  "database": {
+    "database_user": "postgres",
+    "database_password": "admin",
+    "database_host": "localhost",
+    "database_port": 5432,
+    "database_name": "db_weather_forecasting"
+  },
+  "jwt": {
+    "secret_key": "yiS2sJZP6DMRIBUUIKjiYAe2YIkT1_LQlkMbOKLuhj8zktU0ke1T2Iq6qvfz10FlhX_GIUpN_mCpuIl6Qxegag",
+    "algorithm": "HS256",
+    "access_token_expire_minutes": 60
+  },
+  "weather_api": {
+    "api_key": "85fe739f0f7f4f17b0a173001251308"
+  }
+}
